@@ -38,3 +38,24 @@ window.addEventListener("click", (e) => {
   if (e.target === loginModal) loginModal.style.display = "none";
   if (e.target === signupModal) signupModal.style.display = "none";
 });
+
+const signupSubmit = document.getElementById("signupSubmit");
+
+signupSubmit.addEventListener("click", () => {
+  const email = document.getElementById("signupEmail").value.trim();
+  const password = document.getElementById("signupPassword").value.trim();
+  const confirmPassword = document.getElementById("confirmPassword").value.trim();
+
+  if (!email || !password || !confirmPassword) {
+    alert("Please fill out all fields!");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    alert("Passwords do not match!");
+    return;
+  }
+
+  // If everything is valid, proceed with Firebase signup
+  signupUser(email, password);
+});
