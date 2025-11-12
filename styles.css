@@ -111,3 +111,26 @@ body {
 .signup-text a:hover {
   text-decoration: underline;
 }
+
+#logoutBtn {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transition: background 0.3s, transform 0.2s;
+}
+
+#logoutBtn:hover {
+  background-color: #ff3333;
+  transform: scale(1.05);
+}
