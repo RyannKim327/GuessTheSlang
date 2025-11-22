@@ -18,6 +18,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 // --- DOM ---
+const backBtn = document.getElementById("backBtn");
 const loading = document.getElementById("loading");
 const content = document.getElementById("content");
 const logoutBtn = document.getElementById("logoutBtn");
@@ -37,6 +38,12 @@ onAuthStateChanged(auth, user => {
     logoutBtn.style.display = "none";
   }
 });
+//  --- BACK BUTTON ---
+
+backBtn.addEventListener("click", () => {
+    window.location.href = "index.html";
+});
+
 
 // --- LOGOUT ---
 logoutBtn.addEventListener("click", async () => {
