@@ -5,26 +5,23 @@
   font-family: 'Poppins', sans-serif;
 }
 
-/* Fixes mobile keyboard pushing fixed elements */
 html, body {
   height: 100%;
-  overflow: auto;
+  overflow: hidden;
 }
 
 body {
   background: linear-gradient(135deg, #1e1e2f, #2e2e4e);
   color: #fff;
-  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Mobile stabilizer */
 @supports (-webkit-touch-callout: none) {
-  #logoutBtn {
-    position: fixed;
-    bottom: env(safe-area-inset-bottom, 20px);
+  html, body {
+    height: 100%;
+    overflow: hidden;
   }
 }
 
