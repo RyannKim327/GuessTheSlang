@@ -1,7 +1,9 @@
 // --- Firebase imports ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import {getAuth, onAuthStateChanged, signOut} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import {getFirestore, collection, getDocs, doc, getDoc, updateDoc} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+// --- FIREBASE CONFIG ---
 const firebaseConfig = {
   apiKey: "AIzaSyDMUwhrYhjk5qK9n9A7XXcemKLy0bOGfHs",
   authDomain: "pics1word-8388a.firebaseapp.com",
@@ -12,15 +14,19 @@ const firebaseConfig = {
   measurementId: "G-09YM69D70E"
 };
 
-// --- INIT FIREBASE FIRST ---
+// --- INIT FIREBASE ---
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 // --- DOM ---
-const backBtn = document.getElementById("backBtn");
-const loading = document.getElementById("loading");
-const content = document.getElementById("content");
-const logoutBtn = document.getElementById("logoutBtn");
+const backBtn    = document.getElementById("backBtn");
+const loading    = document.getElementById("loading");
+const content    = document.getElementById("content");
+const logoutBtn  = document.getElementById("logoutBtn");
+const answerInput = document.getElementById("answerInput");
+const nextBtn     = document.getElementById("nextBtn");
+const checkBtn    = document.getElementById("checkBtn");
 
 // --- AUTH CHECK ---
 onAuthStateChanged(auth, user => {
@@ -38,11 +44,10 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-//  --- BACK BUTTON ---
+// --- BACK BUTTON ---
 backBtn.addEventListener("click", () => {
-    window.location.href = "index.html";
+  window.location.href = "index.html";
 });
-
 
 // --- LOGOUT ---
 logoutBtn.addEventListener("click", async () => {
@@ -51,83 +56,80 @@ logoutBtn.addEventListener("click", async () => {
   window.location.href = "index.html";
 });
 
-
 // =======================
 //     GAME LOGIC
 // =======================
 
-const levels = [
-  {
-    images: [
-      "https://i.pinimg.com/736x/b0/a7/9a/b0a79ab6122f864b460ea16113631702.jpg",
-      "https://i.pinimg.com/736x/70/08/11/700811a4b44c53a3b2754f4a641b518a.jpg",
-      "https://i.pinimg.com/736x/09/bf/fc/09bffc47567bf9c5cf35908515331e6a.jpg",
-      "https://i.pinimg.com/736x/b9/2e/09/b92e09396f26831211acbaf3436fd9de.jpg"
-    ],
-    answer: "LMAO"
-  },
-  {
-    images: [
-      "https://i.pinimg.com/736x/e3/20/c1/e320c15d441957a2331d519f8c802120.jpg",
-      "https://i.pinimg.com/1200x/a2/d4/d9/a2d4d9c1e0190dca4d47921372be2816.jpg",
-      "https://i.pinimg.com/736x/3a/f7/aa/3af7aaa220e9db21c8162eb45fc1bbde.jpg",
-      "https://i.pinimg.com/736x/cb/16/e4/cb16e4f2dd63bc3f35a219ac089c7159.jpg"
-    ],
-    answer: "IDK"
-  }
-];
+async function addScore(points) {
+  const userId = localStorage.getItem("userId");
+  if (!userId || userId === "guest") return; // guests don't get score
 
-// let the user press Enter to auto trigger check / next
-answerInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        e.preventDefault(); // stops form submissions if inside a form
+  const userRef = doc(db, "users", userId);
+  const snap = await getDoc(userRef);
 
-        // If next button is visible → go to next level
-        if (nextBtn.style.display !== "none") {
-            nextBtn.click();
-        } else {
-            // Otherwise check the answer
-            checkBtn.click();
-        }
-    }
-});
-// Load levels
+  if (!snap.exists()) return;
+
+  const currentScore = snap.data().score || 0;
+
+  await updateDoc(userRef, {
+    score: currentScore + points
+  });
+
+  console.log(`⭐ Score updated: +${points}`);
+}
+
+let levels = [];
 let currentLevel = 0;
 
-function loadLevel() {  
+// 🔧 EXTRA SAFE CLEANER (fixes leftover quotes if Firestore had any)
+function cleanURL(url) {
+  if (!url) return "";
+  return url.replace(/^"+|"+$/g, "").trim();
+}
+
+// Load all levels from Firestore
+async function fetchLevels() {
+  const snap = await getDocs(collection(db, "levels"));
+  levels = snap.docs.map(doc => doc.data());
+
+  console.log("Loaded Levels:", levels); // debug
+
+  loadLevel(); // start game
+}
+
+function loadLevel() {
   const level = levels[currentLevel];
 
   document.getElementById("current_level").textContent = `Level: ${currentLevel + 1}`;
+  document.getElementById("img1").src = cleanURL(level.images[0]);
+  document.getElementById("img2").src = cleanURL(level.images[1]);
+  document.getElementById("img3").src = cleanURL(level.images[2]);
+  document.getElementById("img4").src = cleanURL(level.images[3]);
 
-  document.getElementById("img1").src = level.images[0];
-  document.getElementById("img2").src = level.images[1];
-  document.getElementById("img3").src = level.images[2];
-  document.getElementById("img4").src = level.images[3];
-
-  document.getElementById("answerInput").value = "";
+  answerInput.value = "";
   document.getElementById("feedback").textContent = "";
-  document.getElementById("nextBtn").style.display = "none";
-  document.getElementById("checkBtn").style.display = "inline-block";
+  nextBtn.style.display = "none";
+  checkBtn.style.display = "inline-block";
 }
 
-loadLevel();
-
-// Check answer
-document.getElementById("checkBtn").addEventListener("click", () => {
-  const input = document.getElementById("answerInput").value.trim().toUpperCase();
+// --- CHECK ANSWER ---
+checkBtn.addEventListener("click", () => {
+  const input = answerInput.value.trim().toUpperCase();
   const correct = levels[currentLevel].answer;
 
   if (input === correct) {
-    document.getElementById("feedback").textContent = "Correct! 🎉";
-    document.getElementById("nextBtn").style.display = "inline-block";
-    document.getElementById("checkBtn").style.display = "none";
-  } else {
+  document.getElementById("feedback").textContent = "Correct! 🎉";
+  nextBtn.style.display = "inline-block";
+  checkBtn.style.display = "none";
+  addScore(10); // ⭐ add 10 points
+}
+ else {
     document.getElementById("feedback").textContent = "Try again 😅";
   }
 });
 
-// Next level
-document.getElementById("nextBtn").addEventListener("click", () => {
+// --- NEXT LEVEL ---
+nextBtn.addEventListener("click", () => {
   currentLevel++;
 
   if (currentLevel >= levels.length) {
@@ -137,3 +139,19 @@ document.getElementById("nextBtn").addEventListener("click", () => {
 
   loadLevel();
 });
+
+// --- ENTER KEY AUTO SUBMIT ---
+answerInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+
+    if (nextBtn.style.display !== "none") {
+      nextBtn.click();
+    } else {
+      checkBtn.click();
+    }
+  }
+});
+
+// Start loading levels
+fetchLevels();
