@@ -37,8 +37,8 @@ onAuthStateChanged(auth, user => {
     logoutBtn.style.display = "none";
   }
 });
-//  --- BACK BUTTON ---
 
+//  --- BACK BUTTON ---
 backBtn.addEventListener("click", () => {
     window.location.href = "index.html";
 });
