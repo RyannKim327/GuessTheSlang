@@ -439,15 +439,6 @@ body {
     gap: 15px;
 }
 
-#page {
-  position: relative;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center; 
-}
-
 /* Grid of images */
 .images {
     display: grid;

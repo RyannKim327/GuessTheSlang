@@ -109,12 +109,19 @@ function loadLevel() {
 function generateAnswerBoxes(answer) {
   answerBoxes.innerHTML = "";
 
-  [...answer].forEach(() => {
+  const len = answer.length;
+  for (let i = 0; i < len; i++) {
     const box = document.createElement("div");
     box.classList.add("answer-box");
+    box.dataset.index = i;            // identify box
     box.textContent = "";
+    // clicking a filled box will deselect / restore tile
+    box.addEventListener("click", () => {
+      if (box.textContent === "") return;
+      clearBox(parseInt(box.dataset.index, 10));
+    });
     answerBoxes.appendChild(box);
-  });
+  }
 }
 
 // =======================
@@ -123,22 +130,50 @@ function generateAnswerBoxes(answer) {
 function generateLetterTiles(answer) {
   letterBank.innerHTML = "";
 
-  let letters = [...answer.toUpperCase()];
+  // 1) Count required letters (respect frequency) from answer
+  const required = {};
+  [...answer.toUpperCase()].forEach(ch => {
+    required[ch] = (required[ch] || 0) + 1;
+  });
 
+  // 2) Build initial array that includes all required letters
+  let letters = [];
+  Object.entries(required).forEach(([ch, count]) => {
+    for (let i = 0; i < count; i++) letters.push(ch);
+  });
+
+  // 3) Fill remaining slots up to 12 with random letters (A-Z)
   while (letters.length < 12) {
     letters.push(String.fromCharCode(65 + Math.floor(Math.random() * 26)));
   }
 
+  // 4) Shuffle the letters array
   letters.sort(() => Math.random() - 0.5);
 
-  letters.forEach(letter => {
+  // 5) Create tiles with stable ids so we can restore them later
+  letters.forEach((letter, i) => {
     const tile = document.createElement("div");
     tile.classList.add("letter-tile");
     tile.textContent = letter;
+    tile.dataset.tileId = `tile-${i}`;   // stable id
+    tile.dataset.visible = "true";
 
     tile.addEventListener("click", () => {
-      fillNextBox(letter);
+      // ignore clicks on hidden tiles
+      if (tile.style.visibility === "hidden") return;
+
+      const nextIndex = findNextEmptyBoxIndex();
+      if (nextIndex === -1) return; // no empty boxes
+
+      // fill box and mark tile as used
+      const box = answerBoxes.querySelector(`.answer-box[data-index="${nextIndex}"]`);
+      if (!box) return;
+      box.textContent = letter;
+      box.dataset.srcTile = tile.dataset.tileId; // remember which tile filled it
+
       tile.style.visibility = "hidden";
+      tile.dataset.visible = "false";
+      tile.dataset.filledAt = nextIndex;
     });
 
     letterBank.appendChild(tile);
@@ -146,17 +181,100 @@ function generateLetterTiles(answer) {
 }
 
 // =======================
-//  FILL NEXT EMPTY BOX
+//  FIND NEXT EMPTY BOX
 // =======================
-function fillNextBox(letter) {
+function findNextEmptyBoxIndex() {
   const boxes = document.querySelectorAll(".answer-box");
-
   for (let box of boxes) {
-    if (box.textContent === "") {
-      box.textContent = letter;
-      return;
-    }
+    if (box.textContent === "") return parseInt(box.dataset.index, 10);
   }
+  return -1;
+}
+
+// =======================
+//    CLEAR (DESELECT) BOX
+// =======================
+function clearBox(boxIndex) {
+  const box = answerBoxes.querySelector(`.answer-box[data-index="${boxIndex}"]`);
+  if (!box) return;
+
+  const tileId = box.dataset.srcTile;
+  box.textContent = "";
+  delete box.dataset.srcTile;
+
+  // find the tile that was used and restore it
+  if (tileId) {
+    const tile = letterBank.querySelector(`.letter-tile[data-tile-id="${tileId}"]`);
+    if (tile) {
+      tile.style.visibility = ""; // restore visibility
+      tile.dataset.visible = "true";
+      delete tile.dataset.filledAt;
+    } else {
+      // in case tile node was removed or replaced for some reason:
+      // create a new visible tile with that letter
+      const restored = document.createElement("div");
+      restored.classList.add("letter-tile");
+      restored.textContent = ""; // unknown letter (unlikely)
+      letterBank.appendChild(restored);
+    }
+  } else {
+    // no tile recorded (edge case) — leave box cleared
+  }
+}
+
+// =======================
+//       SHUFFLE UI
+// =======================
+// Shuffle function that does NOT regenerate tiles
+// - shuffles visible tiles in the letter bank (re-orders DOM)
+// - also scrambles letters among filled answer boxes only (keeps box count and tile associations)
+
+function shuffleTilesAndFilledBoxes() {
+  // 1) Shuffle letter tiles DOM order (preserve visibility states)
+  const tiles = Array.from(letterBank.querySelectorAll(".letter-tile"));
+  tiles.sort(() => Math.random() - 0.5);
+  // re-append in new order
+  tiles.forEach(t => letterBank.appendChild(t));
+
+  // 2) Shuffle letters among currently filled boxes ONLY (do not touch empty ones)
+  const filledBoxes = Array.from(answerBoxes.querySelectorAll(".answer-box"))
+    .filter(b => b.textContent !== "");
+
+  if (filledBoxes.length <= 1) return; // nothing meaningful to shuffle
+
+  // Extract letters and their source tile ids
+  const letters = filledBoxes.map(b => b.textContent);
+  const tileIds = filledBoxes.map(b => b.dataset.srcTile || null);
+
+  // Shuffle letters array (Fisher-Yates)
+  for (let i = letters.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [letters[i], letters[j]] = [letters[j], letters[i]];
+    [tileIds[i], tileIds[j]] = [tileIds[j], tileIds[i]];
+  }
+
+  // Put shuffled letters + tile associations back into boxes
+  filledBoxes.forEach((box, idx) => {
+    box.textContent = letters[idx];
+    box.dataset.srcTile = tileIds[idx] || "";
+    // Update the tile.filledAt mapping to match new box index if tile exists
+    if (tileIds[idx]) {
+      const tile = letterBank.querySelector(`.letter-tile[data-tile-id="${tileIds[idx]}"]`);
+      if (tile) {
+        tile.dataset.filledAt = box.dataset.index;
+      }
+    }
+  });
+}
+
+// =======================
+//  OPTIONAL: get current answer string
+// =======================
+
+function getCurrentAnswerFromBoxes() {
+  return Array.from(answerBoxes.querySelectorAll(".answer-box"))
+    .map(b => b.textContent || "")
+    .join("");
 }
 
 // =======================
@@ -202,8 +320,9 @@ nextBtn.addEventListener("click", () => {
 //     SHUFFLE BUTTON
 // =======================
 shuffleBtn.addEventListener("click", () => {
-  generateLetterTiles(levels[currentLevel].answer);
+  shuffleTilesAndFilledBoxes();
 });
+
 
 // Start game
 fetchLevels();
