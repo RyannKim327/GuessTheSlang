@@ -422,14 +422,15 @@ body {
 #current_level {
     font-size: 26px;
     color: #333;
+    margin-bottom: 10px;
 }
 
 /* -------- GAME CONTAINER -------- */
 .game-container {
+    margin-top: 200px;
     width: 450px;
     background: white;
     padding: 25px;
-    margin-top: 100px;
     border-radius: 16px;
     box-shadow: 0 8px 25px rgba(0,0,0,0.12);
     text-align: center;
@@ -463,20 +464,67 @@ body {
     background: #ddd;
 }
 
-/* Input field */
-#answerInput {
-    width: 100%;
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid #ccc;
-    outline: none;
-    font-size: 16px;
-    margin-bottom: 12px;
-    transition: border 0.2s;
+/* === NEW ANSWER BOX + LETTER TILE SYSTEM === */
+
+.answer-boxes {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
 }
 
-#answerInput:focus {
-    border-color: #2667ff;
+.answer-box {
+    width: 45px;
+    height: 45px;
+    background: rgb(209, 209, 209);
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 22px;
+    font-weight: bold;
+    color: #333;
+    cursor: pointer;
+}
+
+.letter-bank {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.letter-tile {
+    padding: 12px;
+    background: rgb(209, 209, 209);
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+}
+
+#shuffleBtn {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border: none;
+    background: #2667ff;
+    color: white;
+    font-size: 16px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+#shuffleBtn:hover {
+    background: #1d55d8;
+}
+.home-container, .game-container, .modal-content {
+  background: #ffffff;
+  border: 1px solid #e4e4e4;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
 }
 
 /* Buttons */
@@ -511,13 +559,6 @@ body {
     background: #209538;
 }
 
-/* Feedback text */
-#feedback {
-    margin-top: 10px;
-    font-size: 16px;
-    font-weight: 600;
-}
-
 /* Feedback states */
 .correct {
     color: #28a745;
@@ -532,7 +573,7 @@ body {
 /* ========================================================= */
 
 /* -------- MOBILE SMALL (phones < 480px) -------- */
-@media (max-width: 480px) {
+@media (max-width: 471px) {
   .game-container {
       margin-top: -30px;
       width: 100%;
@@ -548,7 +589,7 @@ body {
   }
 
   #content {
-      margin-top: 30px;
+      margin-top: 380px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -573,6 +614,14 @@ body {
         width: 380px;
     }
 
+  #content {
+      margin-top: 150px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      width: 100%;
+  }
     .images img {
         height: 130px;
     }
