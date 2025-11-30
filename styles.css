@@ -582,6 +582,7 @@ body {
 
     #current_level {
         font-size: 24px;
+        margin-top: 0px;
     }
 }
 
