@@ -171,7 +171,7 @@ onPage("#loginBtn", () => {
   const loginModal = document.getElementById("loginModal");
 
   loginBtn.addEventListener("click", () => {
-    loginModal.style.display = "block";
+    loginModal.style.display = "flex";
   });
 });
 
@@ -183,7 +183,7 @@ onPage("#showSignup", () => {
 
   showSignup.addEventListener("click", () => {
     loginModal.style.display = "none";
-    signupModal.style.display = "block";
+    signupModal.style.display = "flex";
   });
 });
 
