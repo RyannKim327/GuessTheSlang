@@ -237,8 +237,9 @@ function shuffleTilesAndFilledBoxes() {
   tiles.forEach(t => letterBank.appendChild(t));
 
   // 2) Shuffle letters among currently filled boxes ONLY (do not touch empty ones)
-  const filledBoxes = Array.from(answerBoxes.querySelectorAll(".answer-box"))
-    .filter(b => b.textContent !== "");
+  
+  // const filledBoxes = Array.from(answerBoxes.querySelectorAll(".answer-box"))
+  //   .filter(b => b.textContent !== "");
 
   if (filledBoxes.length <= 1) return; // nothing meaningful to shuffle
 
