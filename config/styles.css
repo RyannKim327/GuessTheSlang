@@ -500,7 +500,7 @@ body {
 #shuffleBtn {
     width: 100%;
     padding: 12px;
-    margin-top: 10px;
+    margin-top: 5px;
     border: none;
     background: #2667ff;
     color: white;
@@ -519,6 +519,7 @@ body {
 }
 
 /* Buttons */
+
 #checkBtn, #nextBtn,#resetLvls {
     width: 100%;
     padding: 12px;
@@ -529,15 +530,17 @@ body {
     transition: 0.2s;
 }
 
-/* Action button */
+
+#resetLvls {
+  background: #ff2626;
+  color: white;
+}
+
 #checkBtn {
     background: #2667ff;
     color: white;
 }
-#resetLvls {
-    background: #ff2626;
-    color: white;
-}
+
 #checkBtn:hover {
     background: #1e52cc;
 }
@@ -567,31 +570,42 @@ body {
 
 /* -------- MOBILE SMALL (phones < 480px) -------- */
 @media (max-width: 479px) {
-    .game-container {
-        display: flex;
-        width: 100%;
-    }
+  .game-container {
+      margin-top: -30px;
+      width: 100%;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+  }
+
+  .home-container{
+    margin-top: -80px;
+    width: 100%;
+  }
 
   #content {
-      margin-top: 150px;
+      margin-top: 380px;
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
       width: 100%;
   }
-    .images img {
-        height: 130px;
-    }
 
-    #current_level {
-        font-size: 24px;
-        margin-top: 0px;
-    }
+  #current_level {
+      font-size: 22px;
+      margin-top: 0px;
+  }
+
+  #backBtn {
+      padding: 8px 14px;
+      font-size: 14px;
+  }
 }        
 
-/* -------- TABLETS -------- */
-@media (max-width: 820px) {
+/* -------- TABLETS (480px - 768px) -------- */
+@media (min-width: 480px) and (max-width: 768px) {
     .game-container {
         width: 380px;
     }
