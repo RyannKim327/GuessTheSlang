@@ -1,4 +1,4 @@
-// --- Firebase imports ---
+     // --- Firebase imports ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
@@ -63,19 +63,50 @@ async function addScore(points) {
   const currentScore = snap.data().score || 0;
   await updateDoc(userRef, { score: currentScore + points });
 }
+// =======================
+//        GLOBALS
+// =======================
 
-// =======================
-//      GLOBALS
-// =======================
 let levels = [];
 let currentLevel = 0;
 
+// On startup, restore progress *before anything else*
+const savedLevel = localStorage.getItem("currentLevel");
+if (savedLevel !== null) {
+  currentLevel = parseInt(savedLevel, 10);
+}
+
 // =======================
-//     FETCH LEVELS
+//      NEXT LEVEL BTN
+// =======================
+nextBtn.addEventListener("click", () => {
+  currentLevel++;
+
+  // Save progress
+  localStorage.setItem("currentLevel", currentLevel);
+
+  if (currentLevel >= levels.length) {
+    customAlert("You finished all levels!");
+    return;
+  }
+
+  loadLevel(); // Safe now
+});
+
+
+// =======================
+//       FETCH LEVELS
 // =======================
 async function fetchLevels() {
   const snap = await getDocs(collection(db, "levels"));
   levels = snap.docs.map(doc => doc.data());
+
+  // Prevent invalid saved level from crashing
+  if (currentLevel < 0 || currentLevel >= levels.length) {
+    currentLevel = 0;
+    localStorage.setItem("currentLevel", 0);
+  }
+
   loadLevel();
 }
 
@@ -85,11 +116,16 @@ function cleanURL(url) {
 }
 
 // =======================
-//     LOAD LEVEL
+//       LOAD LEVEL
 // =======================
 function loadLevel() {
+
+  if (!levels.length) return;
+  if (!levels[currentLevel]) return;
+
   const level = levels[currentLevel];
 
+  // Do NOT overwrite currentLevel here
   document.getElementById("current_level").textContent = `Level: ${currentLevel + 1}`;
   document.getElementById("img1").src = cleanURL(level.images[0]);
   document.getElementById("img2").src = cleanURL(level.images[1]);
@@ -102,6 +138,7 @@ function loadLevel() {
   generateAnswerBoxes(level.answer);
   generateLetterTiles(level.answer);
 }
+
 
 // =======================
 //    ANSWER BOXES UI
@@ -127,6 +164,7 @@ function generateAnswerBoxes(answer) {
 // =======================
 //     LETTER TILES UI
 // =======================
+
 function generateLetterTiles(answer) {
   letterBank.innerHTML = "";
 
@@ -212,7 +250,7 @@ function clearBox(boxIndex) {
     } else {
       // in case tile node was removed or replaced for some reason:
       // create a new visible tile with that letter
-      const restored = document.createElement("div");
+      const restored = document.createElement("div"); 
       restored.classList.add("letter-tile");
       restored.textContent = ""; // unknown letter (unlikely)
       letterBank.appendChild(restored);
@@ -222,6 +260,22 @@ function clearBox(boxIndex) {
   }
 }
 
+const resetBtn = document.getElementById("resetLvls");
+
+resetBtn.addEventListener("click", () => {
+  // Reset level back to 0
+  currentLevel = 0;
+
+  // Save reset value
+  localStorage.setItem("currentLevel", 0);
+
+  // Reload first level
+  loadLevel();
+
+  customAlert("Progress reset! You're back to Level 1.");
+});
+
+
 // =======================
 //       SHUFFLE UI
 // =======================
@@ -230,14 +284,16 @@ function clearBox(boxIndex) {
 // - also scrambles letters among filled answer boxes only (keeps box count and tile associations)
 
 function shuffleTilesAndFilledBoxes() {
+
   // 1) Shuffle letter tiles DOM order (preserve visibility states)
   const tiles = Array.from(letterBank.querySelectorAll(".letter-tile"));
   tiles.sort(() => Math.random() - 0.5);
+
   // re-append in new order
   tiles.forEach(t => letterBank.appendChild(t));
 
   // 2) Shuffle letters among currently filled boxes ONLY (do not touch empty ones)
-  
+
   // const filledBoxes = Array.from(answerBoxes.querySelectorAll(".answer-box"))
   //   .filter(b => b.textContent !== "");
 
@@ -304,26 +360,12 @@ checkBtn.addEventListener("click", () => {
 });
 
 // =======================
-//      NEXT LEVEL
-// =======================
-nextBtn.addEventListener("click", () => {
-  currentLevel++;
-
-  if (currentLevel >= levels.length) {
-    customAlert("You finished all levels!");
-    return;
-  }
-
-  loadLevel();
-});
-
-// =======================
 //     SHUFFLE BUTTON
 // =======================
+
 shuffleBtn.addEventListener("click", () => {
   shuffleTilesAndFilledBoxes();
 });
 
-
 // Start game
-fetchLevels();
+fetchLevels();                                         

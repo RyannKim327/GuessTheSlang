@@ -519,14 +519,13 @@ body {
 }
 
 /* Buttons */
-#checkBtn, #nextBtn {
+#checkBtn, #nextBtn,#resetLvls {
     width: 100%;
     padding: 12px;
     border-radius: 10px;
     font-size: 16px;
     border: none;
     cursor: pointer;
-    margin-bottom: 10px;
     transition: 0.2s;
 }
 
@@ -535,7 +534,10 @@ body {
     background: #2667ff;
     color: white;
 }
-
+#resetLvls {
+    background: #ff2626;
+    color: white;
+}
 #checkBtn:hover {
     background: #1e52cc;
 }
