@@ -99,13 +99,10 @@ nextBtn.addEventListener("click", () => {
 // =======================
 async function fetchLevels() {
   const snap = await getDocs(collection(db, "levels"));
-  levels = snap.docs.map(doc => doc.data());
 
-  // Prevent invalid saved level from crashing
-  if (currentLevel < 0 || currentLevel >= levels.length) {
-    currentLevel = 0;
-    localStorage.setItem("currentLevel", 0);
-  }
+  levels = snap.docs
+    .sort((a, b) => a.id.localeCompare(b.id))   // <-- important
+    .map(doc => doc.data());
 
   loadLevel();
 }
