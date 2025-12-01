@@ -497,66 +497,66 @@ body {
     user-select: none;
 }
 
-#shuffleBtn {
-    width: 100%;
-    padding: 12px;
-    margin-top: 5px;
-    border: none;
-    background: #2667ff;
-    color: white;
-    font-size: 16px;
-    border-radius: 12px;
-    cursor: pointer;
-}
-
-#shuffleBtn:hover {
-    background: #1d55d8;
-}
 .home-container, .game-container, .modal-content {
   background: #ffffff;
   border: 1px solid #e4e4e4;
   box-shadow: 0 6px 20px rgba(0,0,0,0.1);
 }
 
-/* Buttons */
+/* Button container */
+.btn-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 1px;
+}
 
-#checkBtn, #nextBtn,#resetLvls, #hintBtn {
-    width: 100%;
+/* All normal action buttons */
+.btn-group button {
+    flex: 1;
     padding: 12px;
-    border-radius: 10px;
     font-size: 16px;
+    border-radius: 10px;
     border: none;
     cursor: pointer;
     transition: 0.2s;
 }
-#hintBtn {
+
+/* Shuffle + Hint */
+#shuffleBtn, #hintBtn, #checkBtn, #nextBtn {
     background: #2667ff;
     color: white;
 }
 
-#resetLvls {
-  background: #ff2626;
-  color: white;
+#shuffleBtn:hover, #hintBtn:hover, #checkBtn:hover {
+    background: #1d55d8;
 }
 
-#checkBtn {
-    background: #2667ff;
-    color: white;
-}
-
-#checkBtn:hover {
-    background: #1e52cc;
-}
-
-/* Next button */
+/* Next → green */
 #nextBtn {
-    background: #28a745;
-    color: white;
+    background: #28a745 !important;
 }
 
 #nextBtn:hover {
-    background: #209538;
+    background: #209538 !important;
 }
+
+/* Reset Levels — separate & red */
+#resetLvls {
+    width: 100%;
+    margin-top: 1px;
+    padding: 12px;
+    background: #ff2626;
+    border-radius: 15px;
+    font-size: 16px;
+    color: white;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#resetLvls:hover {
+    background: #d82020;
+}
+
 
 /* Feedback states */
 .correct {
