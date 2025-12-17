@@ -245,18 +245,27 @@ body {
 
 .letter-bank {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(42px, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: clamp(6px, 2vw, 10px);
+  width: 100%;
 }
 
 .letter-tile {
-  padding: clamp(10px, 3vw, 14px);
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   background: #d1d1d1;
-  border-radius: 12px;
+  border-radius: clamp(10px, 2.5vw, 14px);
+
   font-size: clamp(16px, 4vw, 20px);
   font-weight: bold;
-  text-align: center;
+
+  cursor: pointer;
+  user-select: none;
 }
+
 
 .btn-group {
   display: flex;
@@ -284,6 +293,7 @@ body {
   background: #ff2626;
   color: #fff;
   border-radius: 14px;
+  border-style: none;
 }
 
 /* === CUSTOM ALERT (CLAMP VERSION) === */
