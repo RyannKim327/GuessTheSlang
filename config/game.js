@@ -1,9 +1,13 @@
-// --- Firebase imports ---
+// =======================
+//        IMPORTS
+// =======================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import {getFirestore,collection,getDocs,doc,getDoc,updateDoc} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-// --- FIREBASE CONFIG ---
+// =======================
+//     FIREBASE CONFIG
+// =======================
 const firebaseConfig = {
   apiKey: "AIzaSyDMUwhrYhjk5qK9n9A7XXcemKLy0bOGfHs",
   authDomain: "pics1word-8388a.firebaseapp.com",
@@ -14,513 +18,282 @@ const firebaseConfig = {
   measurementId: "G-09YM69D70E"
 };
 
-// --- INIT FIREBASE ---
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// --- DOM ---
-const backBtn     = document.getElementById("backBtn");
-const answerBoxes = document.getElementById("answerBoxes");
-const letterBank  = document.getElementById("letterBank");
-const shuffleBtn  = document.getElementById("shuffleBtn");
-const checkBtn    = document.getElementById("checkBtn");
-const nextBtn     = document.getElementById("nextBtn");
-const hintBtn     = document.getElementById("hintBtn");
-const resetBtn    = document.getElementById("resetLvls");
+// =======================
+//        DOM CACHE
+// =======================
+const $ = (id) => document.getElementById(id);
 
-function onPage(selector, callback) {
-    if (document.querySelector(selector)) callback();
+const backBtn     = $("backBtn");
+const answerBoxes = $("answerBoxes");
+const letterBank  = $("letterBank");
+const shuffleBtn  = $("shuffleBtn");
+const checkBtn    = $("checkBtn");
+const nextBtn     = $("nextBtn");
+const hintBtn     = $("hintBtn");
+const resetBtn    = $("resetLvls");
+
+// =======================
+//        SOUND FX
+// =======================
+const clickSfx = new Audio("./config/sounds/click.mp3");
+clickSfx.volume = 0.5;
+
+// unlock audio (mobile fix)
+document.addEventListener("pointerdown", () => {
+  clickSfx.play().then(() => {
+    clickSfx.pause();
+    clickSfx.currentTime = 0;
+  }).catch(() => {});
+}, { once: true });
+
+function playClick() {
+  const sfx = clickSfx.cloneNode();
+  sfx.playbackRate = 0.95 + Math.random() * 0.1;
+  sfx.play().catch(() => {});
 }
 
-// --- BACK BUTTON ---
-onPage("#backBtn", () => {
-  document.getElementById("backBtn").addEventListener("click", () => {
-    const sfx = new Audio("./config/sounds/click.mp3");
-    sfx.volume = 0.5;
-    sfx.play();
-
-    setTimeout(() => {
-      window.location.href = "index.html";
-    }, 150);
-  });
+// global click handler
+document.addEventListener("click", (e) => {
+  if (
+    e.target.closest("button") ||
+    e.target.classList.contains("letter-tile") ||
+    e.target.classList.contains("answer-box")
+  ) {
+    playClick();
+  }
 });
 
-
-// --- CUSTOM ALERT ---
+// =======================
+//        UTILITIES
+// =======================
 function customAlert(message) {
-  const modal = document.getElementById("customAlert");
-  const alertMessage = document.getElementById("alertMessage");
-  const alertOk = document.getElementById("alertOk");
+  const modal = $("customAlert");
+  const text  = $("alertMessage");
+  const ok    = $("alertOk");
 
-  if (!modal || !alertMessage || !alertOk) {
-    // fallback
+  if (!modal || !text || !ok) {
     alert(message);
     return;
   }
 
-  alertMessage.textContent = message;
+  text.textContent = message;
   modal.style.display = "flex";
-
-  alertOk.onclick = () => {
-    modal.style.display = "none";
-  };
+  ok.onclick = () => modal.style.display = "none";
 }
 
-// =======================
-//       SCORE UPDATE
-// =======================
-async function getUserRef() {
-  const userId = localStorage.getItem("userId");
-  if (!userId || userId === "guest") return null;
-  return doc(db, "users", userId);
-}
-
-async function addScore(points) {
-  const userRef = await getUserRef();
-  if (!userRef) return;
-
-  const snap = await getDoc(userRef);
-  if (!snap.exists()) return;
-
-  const score = (snap.data().score || 0) + points;
-  await updateDoc(userRef, { score });
-}
-
-async function getScore() {
-  const userRef = await getUserRef();
-  if (!userRef) return 0;
-
-  const snap = await getDoc(userRef);
-  return snap.exists() ? (snap.data().score || 0) : 0;
-}
-
-async function deductScore(amount) {
-  const userRef = await getUserRef();
-  if (!userRef) return false;
-
-  const snap = await getDoc(userRef);
-  if (!snap.exists()) return false;
-
-  const score = snap.data().score || 0;
-  if (score < amount) return false;
-
-  await updateDoc(userRef, { score: score - amount });
-  return true;
-}
-
-// =======================
-//        GLOBALS
-// =======================
-let levels = [];
-let currentLevel = 0;
-
-// On startup, restore progress *before anything else*
-const savedLevel = localStorage.getItem("currentLevel");
-if (savedLevel !== null) {
-  const n = parseInt(savedLevel, 10);
-  if (!Number.isNaN(n) && n >= 0) currentLevel = n;
-}
-
-// disable interactive buttons until levels load
-function setUIEnabled(enabled) {
-  // nextBtn may be shown/hidden by game state; disabling ensures clicks do nothing while loading
-  [hintBtn, shuffleBtn, checkBtn, nextBtn].forEach(btn => {
-    if (!btn) return;
-    btn.disabled = !enabled;
-  });
-}
-setUIEnabled(false);
-
-// =======================
-//       HINT LOGIC
-// =======================
-function safeGetCurrentLevel() {
-  if (!levels.length) return null;
-  if (currentLevel < 0 || currentLevel >= levels.length) return null;
-  return levels[currentLevel];
-}
-
-function revealOneCorrectLetter() {
-  const level = safeGetCurrentLevel();
-  if (!level) return false;
-
-  const correct = (level.answer || "").toUpperCase();
-  if (!correct) return false;
-
-  const boxes = [...document.querySelectorAll(".answer-box")];
-
-  for (let i = 0; i < boxes.length; i++) {
-    const box = boxes[i];
-
-    // guard for index > answer length
-    if (i >= correct.length) continue;
-
-    if (box.textContent !== correct[i]) {
-      if (box.textContent) clearBox(i);
-
-      box.textContent = correct[i];
-
-      const tile = [...letterBank.querySelectorAll(".letter-tile")]
-        .find(t => t.textContent === correct[i] && t.style.visibility !== "hidden");
-
-      if (tile) {
-        tile.style.visibility = "hidden";
-        tile.dataset.visible = "false";
-        tile.dataset.filledAt = i;
-      }
-
-      // keep dataset.srcTile for box so clearBox can restore
-      if (tile && tile.dataset.tileId) {
-        box.dataset.srcTile = tile.dataset.tileId;
-      }
-
-      return true;
-    }
-  }
-
-  return false;
-}
-
-hintBtn?.addEventListener("click", async () => {
-  const userId = localStorage.getItem("userId");
-
-  // REAL guest check (covers: null, undefined, empty, "guest")
-  if (!userId || userId === "guest") {
-    customAlert("You need an account to use hints.");
-    return;
-  }
-
-  if (!safeGetCurrentLevel()) {
-    customAlert("Level not ready yet.");
-    return;
-  }
-
-  const HINT_COST = 10;
-
-  if (!(await deductScore(HINT_COST))) {
-    customAlert("Not enough points for a hint!");
-    return;
-  }
-
-  if (!revealOneCorrectLetter()) {
-    customAlert("Nothing to reveal!");
-  }
-});
-
-// =======================
-//      NEXT LEVEL BTN
-// =======================
-nextBtn?.addEventListener("click", () => {
-  // guard
-  if (!levels.length) return;
-
-  currentLevel++;
-  localStorage.setItem("currentLevel", currentLevel);
-
-  if (currentLevel >= levels.length) {
-    customAlert("You finished all levels!");
-    return;
-  }
-
-  loadLevel();
-});
-
-// =======================
-//       FETCH LEVELS
-// =======================
-async function fetchLevels() {
-  try {
-    setUIEnabled(false);
-
-    const snap = await getDocs(collection(db, "levels"));
-
-    levels = snap.docs
-      .sort((a, b) => a.id.localeCompare(b.id))
-      .map(d => d.data());
-
-    // validate levels array
-    if (!levels.length) {
-      customAlert("No levels found in database.");
-      return;
-    }
-
-    // clamp currentLevel if out of range
-    if (currentLevel >= levels.length) currentLevel = 0;
-    if (currentLevel < 0) currentLevel = 0;
-    localStorage.setItem("currentLevel", currentLevel);
-
-    loadLevel();
-    setUIEnabled(true);
-  } catch (err) {
-    console.error("fetchLevels error:", err);
-    customAlert("Failed to load levels. Check your internet or Firebase rules.");
-  }
-}
-
-function cleanURL(url) {
-  if (!url) return "";
+function cleanURL(url = "") {
   return url.replace(/^"+|"+$/g, "").trim();
 }
 
 // =======================
-//       LOAD LEVEL
+//        SCORE
 // =======================
+async function getUserRef() {
+  const uid = localStorage.getItem("userId");
+  if (!uid || uid === "guest") return null;
+  return doc(db, "users", uid);
+}
+
+async function addScore(points) {
+  const ref = await getUserRef();
+  if (!ref) return;
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  await updateDoc(ref, { score: (snap.data().score || 0) + points });
+}
+
+async function deductScore(points) {
+  const ref = await getUserRef();
+  if (!ref) return false;
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return false;
+  const score = snap.data().score || 0;
+  if (score < points) return false;
+  await updateDoc(ref, { score: score - points });
+  return true;
+}
+
+// =======================
+//        GAME STATE
+// =======================
+let levels = [];
+let currentLevel = Number(localStorage.getItem("currentLevel")) || 0;
+
+function safeLevel() {
+  return levels[currentLevel] || null;
+}
+
+function setUI(enabled) {
+  [hintBtn, shuffleBtn, checkBtn, nextBtn].forEach(b => b && (b.disabled = !enabled));
+}
+
+setUI(false);
+
+// =======================
+//        LEVEL LOAD
+// =======================
+async function fetchLevels() {
+  try {
+    const snap = await getDocs(collection(db, "levels"));
+    levels = snap.docs.sort((a, b) => a.id.localeCompare(b.id)).map(d => d.data());
+
+    if (!levels.length) return customAlert("No levels found");
+
+    currentLevel = Math.min(currentLevel, levels.length - 1);
+    localStorage.setItem("currentLevel", currentLevel);
+
+    loadLevel();
+    setUI(true);
+  } catch (e) {
+    console.error(e);
+    customAlert("Failed to load levels");
+  }
+}
+
 function loadLevel() {
-  const level = safeGetCurrentLevel();
+  const level = safeLevel();
   if (!level) return;
 
-  // update UI header
-  const header = document.getElementById("current_level");
-  if (header) header.textContent = `Level: ${currentLevel + 1}`;
+  $("current_level").textContent = `Level: ${currentLevel + 1}`;
 
-  // set images (use cleanURL guard)
-  const imgs = ["img1", "img2", "img3", "img4"].map(id => document.getElementById(id));
-  imgs.forEach((imgEl, idx) => {
-    if (!imgEl) return;
-    imgEl.src = cleanURL((level.images && level.images[idx]) || "");
+  ["img1","img2","img3","img4"].forEach((id, i) => {
+    const img = $(id);
+    if (img) img.src = cleanURL(level.images?.[i]);
   });
 
-  // show/hide buttons
   nextBtn.style.display = "none";
   checkBtn.style.display = "inline-block";
 
-  // regenerate UI
-  generateAnswerBoxes(level.answer || "");
-  generateLetterTiles(level.answer || "");
+  buildAnswerBoxes(level.answer);
+  buildLetterTiles(level.answer);
 }
 
 // =======================
-//    ANSWER BOXES UI
+//        ANSWER BOXES
 // =======================
-function generateAnswerBoxes(answer) {
+function buildAnswerBoxes(answer = "") {
   answerBoxes.innerHTML = "";
 
-  const len = (answer || "").length;
-  for (let i = 0; i < len; i++) {
+  [...answer].forEach((_, i) => {
     const box = document.createElement("div");
-    box.classList.add("answer-box");
-    box.dataset.index = i;            // identify box
-    box.textContent = "";
-    // clicking a filled box will deselect / restore tile
-    box.addEventListener("click", () => {
-      if (box.textContent === "") return;
-      clearBox(parseInt(box.dataset.index, 10));
-    });
+    box.className = "answer-box";
+    box.dataset.index = i;
+    box.onclick = () => box.textContent && clearBox(i);
     answerBoxes.appendChild(box);
-  }
+  });
+}
+
+function findEmptyBox() {
+  return [...answerBoxes.children].find(b => !b.textContent)?.dataset.index ?? -1;
+}
+
+function clearBox(i) {
+  const box = answerBoxes.children[i];
+  const tileId = box.dataset.srcTile;
+  box.textContent = "";
+  delete box.dataset.srcTile;
+
+  if (!tileId) return;
+  const tile = letterBank.querySelector(`[data-tile-id='${tileId}']`);
+  if (tile) tile.style.visibility = "";
 }
 
 // =======================
-//     LETTER TILES UI
+//        LETTER TILES
 // =======================
-function generateLetterTiles(answer) {
+function buildLetterTiles(answer = "") {
   letterBank.innerHTML = "";
 
-  // 1) Count required letters (respect frequency) from answer
-  const required = {};
-  [...(answer || "").toUpperCase()].forEach(ch => {
-    required[ch] = (required[ch] || 0) + 1;
-  });
+  const needed = {};
+  [...answer.toUpperCase()].forEach(l => needed[l] = (needed[l] || 0) + 1);
 
-  // 2) Build initial array that includes all required letters
-  let letters = [];
-  Object.entries(required).forEach(([ch, count]) => {
-    for (let i = 0; i < count; i++) letters.push(ch);
-  });
-
-  // 3) Fill remaining slots up to 12 with random letters (A-Z)
-  while (letters.length < 12) {
-    letters.push(String.fromCharCode(65 + Math.floor(Math.random() * 26)));
-  }
-
-  // 4) Shuffle the letters array
+  let letters = Object.entries(needed).flatMap(([l, c]) => Array(c).fill(l));
+  while (letters.length < 12) letters.push(String.fromCharCode(65 + Math.random() * 26));
   letters.sort(() => Math.random() - 0.5);
 
-  // 5) Create tiles with stable ids so we can restore them later
-  // include a timestamp to avoid id collisions if regenerate repeatedly
-  const idPrefix = `t${Date.now()}-`;
-  letters.forEach((letter, i) => {
+  const uid = Date.now();
+
+  letters.forEach((l, i) => {
     const tile = document.createElement("div");
-    tile.classList.add("letter-tile");
-    tile.textContent = letter;
-    tile.dataset.tileId = `${idPrefix}${i}`;   // stable id unique per generation
-    tile.dataset.visible = "true";
+    tile.className = "letter-tile";
+    tile.textContent = l;
+    tile.dataset.tileId = `${uid}-${i}`;
 
-    tile.addEventListener("click", () => {
-      // ignore clicks on hidden tiles
+    tile.onclick = () => {
       if (tile.style.visibility === "hidden") return;
+      const idx = findEmptyBox();
+      if (idx === -1) return;
 
-      const nextIndex = findNextEmptyBoxIndex();
-      if (nextIndex === -1) return; // no empty boxes
-
-      // fill box and mark tile as used
-      const box = answerBoxes.querySelector(`.answer-box[data-index="${nextIndex}"]`);
-      if (!box) return;
-      box.textContent = letter;
-      box.dataset.srcTile = tile.dataset.tileId; // remember which tile filled it
-
+      const box = answerBoxes.children[idx];
+      box.textContent = l;
+      box.dataset.srcTile = tile.dataset.tileId;
       tile.style.visibility = "hidden";
-      tile.dataset.visible = "false";
-      tile.dataset.filledAt = nextIndex;
-    });
+    };
 
     letterBank.appendChild(tile);
   });
 }
 
 // =======================
-//  FIND NEXT EMPTY BOX
+//        ACTIONS
 // =======================
-function findNextEmptyBoxIndex() {
-  const boxes = document.querySelectorAll(".answer-box");
-  for (let box of boxes) {
-    if (box.textContent === "") return parseInt(box.dataset.index, 10);
-  }
-  return -1;
-}
+checkBtn.onclick = () => {
+  const level = safeLevel();
+  if (!level) return;
 
-// =======================
-//    CLEAR (DESELECT) BOX
-// =======================
-function clearBox(boxIndex) {
-  const box = answerBoxes.querySelector(`.answer-box[data-index="${boxIndex}"]`);
-  if (!box) return;
-
-  const tileId = box.dataset.srcTile;
-  box.textContent = "";
-  delete box.dataset.srcTile;
-
-  // find the tile that was used and restore it
-  if (tileId) {
-    const tile = letterBank.querySelector(`.letter-tile[data-tile-id="${tileId}"]`);
-    if (tile) {
-      tile.style.visibility = ""; // restore visibility
-      tile.dataset.visible = "true";
-      delete tile.dataset.filledAt;
-    } else {
-      // in case tile node was removed or replaced for some reason:
-      // recreate a visible tile with that letter (fallback)
-      const restored = document.createElement("div");
-      restored.classList.add("letter-tile");
-      restored.textContent = ""; // unknown letter if not found
-      letterBank.appendChild(restored);
-    }
-  } else {
-    // no tile recorded (edge case) — nothing to restore
-  }
-}
-
-// =======================
-//       RESET BUTTON
-// =======================
-resetBtn?.addEventListener("click", () => {
-  currentLevel = 0;
-  localStorage.setItem("currentLevel", 0);
-
-  // re-fetch levels to ensure UI and data are in sync
-  fetchLevels();
-
-  customAlert("Progress reset! You're back to Level 1.");
-});
-
-// =======================
-//       SHUFFLE UI
-// =======================
-// Shuffle function that does NOT regenerate tiles
-// - shuffles visible tiles in the letter bank (re-orders DOM)
-// - also scrambles letters among filled answer boxes only (keeps box count and tile associations)
-function shuffleTilesAndFilledBoxes() {
-  // 1) Shuffle letter tiles DOM order (preserve visibility states)
-  const tiles = Array.from(letterBank.querySelectorAll(".letter-tile"));
-  tiles.sort(() => Math.random() - 0.5);
-  tiles.forEach(t => letterBank.appendChild(t));
-
-  // 2) Shuffle letters among currently filled boxes ONLY (do not touch empty ones)
-  const filledBoxes = Array.from(answerBoxes.querySelectorAll(".answer-box"))
-    .filter(b => b.textContent !== "");
-
-  if (filledBoxes.length <= 1) return; // nothing meaningful to shuffle
-
-  // Extract letters and their source tile ids
-  const letters = filledBoxes.map(b => b.textContent);
-  const tileIds = filledBoxes.map(b => b.dataset.srcTile || null);
-
-  // Shuffle letters array (Fisher-Yates)
-  for (let i = letters.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [letters[i], letters[j]] = [letters[j], letters[i]];
-    [tileIds[i], tileIds[j]] = [tileIds[j], tileIds[i]];
-  }
-
-  // Put shuffled letters + tile associations back into boxes
-  filledBoxes.forEach((box, idx) => {
-    box.textContent = letters[idx];
-    box.dataset.srcTile = tileIds[idx] || "";
-
-    // Update the tile.filledAt mapping to match new box index if tile exists
-    if (tileIds[idx]) {
-      const tile = letterBank.querySelector(`.letter-tile[data-tile-id="${tileIds[idx]}"]`);
-      if (tile) {
-        tile.dataset.filledAt = box.dataset.index;
-      }
-    }
-  });
-}
-
-// =======================
-//      COLLECT ANSWER
-// =======================
-function getPlayerAnswer() {
-  const boxes = document.querySelectorAll(".answer-box");
-  return [...boxes].map(b => b.textContent).join("");
-}
-
-// =======================
-//      CHECK ANSWER
-// =======================
-checkBtn?.addEventListener("click", () => {
-  const level = safeGetCurrentLevel();
-  if (!level) {
-    customAlert("Level not ready.");
-    return;
-  }
-
-  const player = getPlayerAnswer();
-  const correct = level.answer || "";
-
-  if (player === correct) {
+  const answer = [...answerBoxes.children].map(b => b.textContent).join("");
+  if (answer === level.answer) {
     customAlert("Correct! 🎉");
+    addScore(10);
     nextBtn.style.display = "inline-block";
     checkBtn.style.display = "none";
-    addScore(10);
   } else {
     customAlert("Try again 😅");
   }
-});
+};
+
+nextBtn.onclick = () => {
+  currentLevel++;
+  localStorage.setItem("currentLevel", currentLevel);
+  currentLevel >= levels.length ? customAlert("All levels done!") : loadLevel();
+};
+
+shuffleBtn.onclick = () => {
+  [...letterBank.children].sort(() => Math.random() - 0.5)
+    .forEach(t => letterBank.appendChild(t));
+};
+
+hintBtn.onclick = async () => {
+  if (!(await deductScore(10))) return customAlert("Not enough points!");
+
+  const level = safeLevel();
+  const correct = level.answer.toUpperCase();
+
+  [...answerBoxes.children].some((b, i) => {
+    if (b.textContent !== correct[i]) {
+      if (b.textContent) clearBox(i);
+      b.textContent = correct[i];
+      return true;
+    }
+  });
+};
+
+resetBtn.onclick = () => {
+  currentLevel = 0;
+  localStorage.setItem("currentLevel", 0);
+  fetchLevels();
+  customAlert("Progress reset");
+};
+
+backBtn.onclick = () => {
+  setTimeout(() => location.href = "index.html", 150);
+};
 
 // =======================
-//     SHUFFLE BUTTON
+//        START
 // =======================
-
-shuffleBtn?.addEventListener("click", () => {
-  // guard
-  if (!safeGetCurrentLevel()) {
-    customAlert("Level not ready.");
-    return;
-  }
-  shuffleTilesAndFilledBoxes();
-});
-
-// Sound effects
-
-document.querySelectorAll("button").forEach(btn => {
-    btn.addEventListener("click", () => {
-        const clickSfx = new Audio("./config/sounds/click.mp3");
-        clickSfx.volume = 0.5;
-        clickSfx.play();
-    });
-});
-
-// Start game
 fetchLevels();

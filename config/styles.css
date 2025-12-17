@@ -266,6 +266,13 @@ body {
   user-select: none;
 }
 
+.letter-tile:active {
+  transform: scale(0.95);
+}
+
+.letter-tile:hover {
+  background: #c7c7c7;
+}
 
 .btn-group {
   display: flex;

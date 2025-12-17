@@ -1,14 +1,15 @@
-// -----------------------
-//    Firebase Imports
-// -----------------------
+// ==================================================
+//                FIREBASE IMPORTS
+// ==================================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-import {getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import {getFirestore,setDoc,doc,collection,getDocs
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-// -----------------------
-//    Firebase Config
-// -----------------------
+// ==================================================
+//                FIREBASE CONFIG
+// ==================================================
 const firebaseConfig = {
   apiKey: "AIzaSyDMUwhrYhjk5qK9n9A7XXcemKLy0bOGfHs",
   authDomain: "pics1word-8388a.firebaseapp.com",
@@ -19,309 +20,240 @@ const firebaseConfig = {
   measurementId: "G-09YM69D70E"
 };
 
-// Init Firebase
+// ==================================================
+//              FIREBASE INIT
+// ==================================================
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// -----------------------
-//      Auth Listener
-// -----------------------
+// ==================================================
+//                SOUND SYSTEM
+// ==================================================
+const Sounds = {
+  click: new Audio("./config/sounds/click.mp3"),
+};
+
+Sounds.click.volume = 0.5;
+
+function playClick() {
+  const sfx = Sounds.click.cloneNode();
+  sfx.play().catch(() => {});
+}
+
+// ==================================================
+//                HELPERS
+// ==================================================
+function onPage(selector, callback) {
+  if (document.querySelector(selector)) callback();
+}
+
+function navWithClick(selector, target) {
+  onPage(selector, () => {
+    document.querySelector(selector).addEventListener("click", () => {
+      setTimeout(() => {
+        window.location.href = target;
+      }, 120);
+    });
+  });
+}
+
+// ==================================================
+//                CUSTOM ALERT
+// ==================================================
+function customAlert(message) {
+  const modal = document.getElementById("customAlert");
+  const msg = document.getElementById("alertMessage");
+  const ok = document.getElementById("alertOk");
+
+  if (!modal) return alert(message);
+
+  msg.textContent = message;
+  modal.style.display = "flex";
+
+  ok.onclick = () => {
+    modal.style.display = "none";
+  };
+}
+
+// ==================================================
+//                AUTH LISTENER
+// ==================================================
 let currentUser = null;
 
 onAuthStateChanged(auth, (user) => {
   const loginBtn = document.getElementById("loginBtn");
   const logoutBtn = document.getElementById("logoutBtn");
-  const usernameDisplay = document.getElementById("nickname");   // username text on homepage
+  const nickname = document.getElementById("nickname");
 
   if (user) {
     currentUser = user;
     localStorage.setItem("userId", user.uid);
 
-    // --- show/hide buttons ---
-    if (loginBtn) loginBtn.style.display = "none";
-    if (logoutBtn) logoutBtn.style.display = "block";
+    loginBtn && (loginBtn.style.display = "none");
+    logoutBtn && (logoutBtn.style.display = "block");
 
-    // --- update username text ---
-    if (usernameDisplay) {
-      usernameDisplay.textContent = user.email.split("@")[0];
-      usernameDisplay.style.display = "block";   // make sure it's visible
+    if (nickname) {
+      nickname.textContent = user.email.split("@")[0];
+      nickname.style.display = "block";
     }
-
   } else {
     currentUser = null;
     localStorage.removeItem("userId");
 
-    // --- show/hide buttons ---
-    if (loginBtn) loginBtn.style.display = "block";
-    if (logoutBtn) logoutBtn.style.display = "none";
+    loginBtn && (loginBtn.style.display = "block");
+    logoutBtn && (logoutBtn.style.display = "none");
 
-    // --- show guest when logged out ---
-    if (usernameDisplay) {
-      usernameDisplay.textContent = "Guest";
-      usernameDisplay.style.display = "block";   // show Guest
+    if (nickname) {
+      nickname.textContent = "Guest";
+      nickname.style.display = "block";
     }
   }
 });
 
-// -----------------------
-// Helper: run only if element exists
-// -----------------------
-function onPage(selector, callback) {
-  if (document.querySelector(selector)) callback();
-}
-
-// Custom Alert
-function customAlert(message) {
-  const alertModal = document.getElementById("customAlert");
-  const alertMsg = document.getElementById("alertMessage");
-  const alertOk = document.getElementById("alertOk");
-
-  alertMsg.textContent = message;
-  alertModal.style.display = "flex";
-
-  alertOk.onclick = () => {
-    alertModal.style.display = "none";
-  };
-}
-
-// -----------------------
-//      AUTH FUNCTIONS
-// -----------------------
+// ==================================================
+//                AUTH FUNCTIONS
+// ==================================================
 async function signupUser(email, password) {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    const { user } = await createUserWithEmailAndPassword(auth, email, password);
 
     await setDoc(doc(db, "users", user.uid), {
-      email: email,
+      email,
       score: 0
     });
 
     customAlert("Signup successful!");
     localStorage.setItem("userId", user.uid);
-
     document.getElementById("signupModal").style.display = "none";
-  } catch (error) {
-    customAlert(error.message);
+  } catch (err) {
+    customAlert(err.message);
   }
 }
 
 async function loginUser(email, password) {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-
+    const { user } = await signInWithEmailAndPassword(auth, email, password);
     localStorage.setItem("userId", user.uid);
-    customAlert("Login successful!");
 
+    customAlert("Login successful!");
     document.getElementById("loginModal").style.display = "none";
-  } catch (error) {
-    customAlert(error.message);
+  } catch (err) {
+    customAlert(err.message);
   }
 }
 
-// ---------------------------
-//      LEADERBOARD LOGIC
-// ---------------------------
-
+// ==================================================
+//              LEADERBOARD
+// ==================================================
 const leaderboardList = document.getElementById("leaderboardList");
 
 async function loadLeaderboard() {
   try {
-    const snapshot = await getDocs(collection(db, "users"));
-
-    const players = [];
-
-    snapshot.forEach(doc => {
-      players.push(doc.data());
-    });
-
-    players.sort((a, b) => b.score - a.score);
+    const snap = await getDocs(collection(db, "users"));
+    const players = snap.docs.map(d => d.data()).sort((a, b) => b.score - a.score);
 
     leaderboardList.innerHTML = "";
 
-    players.forEach((player, index) => {
-      const rank = index + 1;
-
-      let className = "leaderboard-item";
-      if (rank === 1) className += " top-1";
-      if (rank === 2) className += " top-2";
-      if (rank === 3) className += " top-3";
-
+    players.forEach((p, i) => {
+      const rank = i + 1;
       leaderboardList.innerHTML += `
-        <li class="${className}">
+        <li class="leaderboard-item ${rank <= 3 ? `top-${rank}` : ""}">
           <span class="rank">#${rank}</span>
-          <span class="username">${player.email.split("@")[0]}</span>
-          <span class="score">${player.score}</span>
+          <span class="username">${p.email.split("@")[0]}</span>
+          <span class="score">${p.score}</span>
         </li>
       `;
     });
-
   } catch (err) {
     console.error("Leaderboard error:", err);
   }
 }
 
-if (leaderboardList) loadLeaderboard();
+leaderboardList && loadLeaderboard();
 
-// -----------------------
-//      PAGE LOGIC
-// -----------------------
+// ==================================================
+//              NAVIGATION
+// ==================================================
+navWithClick("#playBtn", "game.html");
+navWithClick("#leaderboardBtn", "leaderboard.html");
+navWithClick("#dictionaryBtn", "dictionary.html");
+navWithClick("#backBtn", "index.html");
 
-// PLAY BUTTON (index)
-onPage("#playBtn", () => {
-  document.getElementById("playBtn").addEventListener("click", () => {
-    const sfx = new Audio("./config/sounds/click.mp3");
-    sfx.volume = 0.5;
-    sfx.play();
-
-    setTimeout(() => {
-      window.location.href = "game.html";
-    }, 150);
-  });
-});
-
-// LEADERBOARD BUTTON
-onPage("#leaderboardBtn", () => {
-  document.getElementById("leaderboardBtn").addEventListener("click", () => {
-    const sfx = new Audio("./config/sounds/click.mp3");
-    sfx.volume = 0.5;
-    sfx.play();
-
-    setTimeout(() => {
-      window.location.href = "leaderboard.html";
-    }, 150);
-  });
-});
-
-// DICTIONARY BUTTON
-onPage("#dictionaryBtn", () => {
-  document.getElementById("dictionaryBtn").addEventListener("click", () => {
-    const sfx = new Audio("./config/sounds/click.mp3");
-    sfx.volume = 0.5;
-    sfx.play();
-
-    setTimeout(() => {
-      window.location.href = "dictionary.html";
-    }, 150);
-  });
-});
-
-// BACK BUTTON (leaderboard/game)
-onPage("#backBtn", () => {
-  document.getElementById("backBtn").addEventListener("click", () => {
-    const sfx = new Audio("./config/sounds/click.mp3");
-    sfx.volume = 0.5;
-    sfx.play();
-
-    setTimeout(() => {
-      window.location.href = "index.html";
-    }, 150);
-  });
-});
-
-// -----------------------
-//      LOGIN MODAL
-// -----------------------
+// ==================================================
+//              MODALS
+// ==================================================
 onPage("#loginBtn", () => {
-  const loginBtn = document.getElementById("loginBtn");
-  const loginModal = document.getElementById("loginModal");
-
-  loginBtn.addEventListener("click", () => {
-    loginModal.style.display = "flex";
-  });
+  document.getElementById("loginBtn").onclick = () =>
+    document.getElementById("loginModal").style.display = "flex";
 });
 
-// SWITCH TO SIGNUP
 onPage("#showSignup", () => {
-  const showSignup = document.getElementById("showSignup");
-  const loginModal = document.getElementById("loginModal");
-  const signupModal = document.getElementById("signupModal");
-
-  showSignup.addEventListener("click", () => {
+  showSignup.onclick = () => {
     loginModal.style.display = "none";
     signupModal.style.display = "flex";
-  });
+  };
 });
 
-// CLOSE LOGIN MODAL
 onPage("#closeModal", () => {
-  document.getElementById("closeModal").addEventListener("click", () => {
-    document.getElementById("loginModal").style.display = "none";
-  });
+  closeModal.onclick = () => loginModal.style.display = "none";
 });
 
-// CLOSE SIGNUP MODAL
 onPage("#closeSignup", () => {
-  document.getElementById("closeSignup").addEventListener("click", () => {
-    document.getElementById("signupModal").style.display = "none";
-  });
+  closeSignup.onclick = () => signupModal.style.display = "none";
 });
 
-// CLICK OUTSIDE TO CLOSE
-onPage("#loginModal", () => {
-  window.addEventListener("click", (e) => {
-    if (e.target === document.getElementById("loginModal"))
-      document.getElementById("loginModal").style.display = "none";
-
-    if (e.target === document.getElementById("signupModal"))
-      document.getElementById("signupModal").style.display = "none";
-  });
+window.addEventListener("click", (e) => {
+  if (e.target === loginModal) loginModal.style.display = "none";
+  if (e.target === signupModal) signupModal.style.display = "none";
 });
 
-// -----------------------
-//      SIGNUP SUBMIT
-// -----------------------
+// ==================================================
+//              FORM SUBMITS
+// ==================================================
 onPage("#signupSubmit", () => {
-  document.getElementById("signupSubmit").addEventListener("click", () => {
-    const email = document.getElementById("signupEmail").value.trim();
-    const password = document.getElementById("signupPassword").value.trim();
-    const confirmPassword = document.getElementById("confirmPassword").value.trim();
+  signupSubmit.onclick = () => {
+    const email = signupEmail.value.trim();
+    const pass = signupPassword.value.trim();
+    const confirm = confirmPassword.value.trim();
 
-    if (!email || !password || !confirmPassword)
-      return customAlert("Please fill out all fields!");
+    if (!email || !pass || !confirm)
+      return customAlert("Fill out all fields");
 
-    if (password !== confirmPassword)
-      return customAlert("Passwords do not match!");
+    if (pass !== confirm)
+      return customAlert("Passwords do not match");
 
-    signupUser(email, password);
-  });
+    signupUser(email, pass);
+  };
 });
 
-// -----------------------
-//      LOGIN SUBMIT
-// -----------------------
 onPage("#loginSubmit", () => {
-  document.getElementById("loginSubmit").addEventListener("click", () => {
-    const email = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value.trim();
+  loginSubmit.onclick = () => {
+    const email = username.value.trim();
+    const pass = password.value.trim();
 
-    if (!email || !password)
-      return customAlert("Please enter both email and password!");
+    if (!email || !pass)
+      return customAlert("Enter email and password");
 
-    loginUser(email, password);
-  });
+    loginUser(email, pass);
+  };
 });
 
-// -----------------------
-//      LOGOUT BUTTON
-// -----------------------
+// ==================================================
+//              LOGOUT
+// ==================================================
 onPage("#logoutBtn", () => {
-  document.getElementById("logoutBtn").addEventListener("click", async () => {
+  logoutBtn.onclick = async () => {
+    playClick();
     await auth.signOut();
     localStorage.removeItem("userId");
-    customAlert("Logged out!");
-
     window.location.href = "index.html";
-  });
+  };
 });
 
-// Sound effects
+// ==================================================
+//        GLOBAL BUTTON CLICK SOUND
+// ==================================================
 document.querySelectorAll("button").forEach(btn => {
-    btn.addEventListener("click", () => {
-        const clickSfx = new Audio("./config/sounds/click.mp3");
-        clickSfx.volume = 0.5;
-        clickSfx.play();
-    });
+  btn.addEventListener("click", playClick);
 });
