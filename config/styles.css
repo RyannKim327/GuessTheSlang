@@ -211,12 +211,6 @@ body {
   width: 100%;
 }
 
-@media (max-width: 420px) {
-  .images {
-    grid-template-columns: 1fr;
-  }
-}
-
 .images img {
   width: 100%;
   aspect-ratio: 1 / 1;
