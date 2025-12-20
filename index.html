@@ -40,10 +40,12 @@
       <h2>Login</h2>
       <input type="text" id="username" placeholder="Email">
       <input type="password" id="password" placeholder="Password">
+
       <div class="modal-buttons">
         <button id="loginSubmit">Login</button>
         <button id="closeModal">Cancel</button>
       </div>
+      <p id="forgotPassword" style="cursor:pointer; color:#7700ff; margin-top: 10px;">Forgot password?</p>
       <p class="signup-text">Don't have an account? <a href="#" id="showSignup">Sign up</a></p>
     </div>
   </div>
@@ -58,6 +60,24 @@
       <div class="modal-buttons">
         <button id="signupSubmit">Sign Up</button>
         <button id="closeSignup">Cancel</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Forgot Password Modal -->
+  <div id="forgotModal" class="modal">
+    <div class="modal-content">
+      <h2>Reset Password</h2>
+
+      <input
+        type="email"
+        id="resetEmail"
+        placeholder="Enter your email"
+      />
+
+      <div class="modal-buttons">
+        <button id="resetSubmit">Send Reset Link</button>
+        <button id="closeForgot">Cancel</button>
       </div>
     </div>
   </div>

@@ -2,7 +2,7 @@
 //                FIREBASE IMPORTS
 // ==================================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged
+import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import {getFirestore,setDoc,doc,collection,getDocs
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
@@ -144,6 +144,22 @@ async function loginUser(email, password) {
 }
 
 // ==================================================
+//            PASSWORD RESET FUNCTIONS
+// ==================================================
+async function sendReset(email) {
+  if (!email) {
+    return customAlert("Please enter your email");
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+    customAlert("Reset link sent! Check your email.");
+    forgotModal.style.display = "none";
+  } catch (err) {
+    customAlert(err.message);
+  }
+}
+// ==================================================
 //              LEADERBOARD
 // ==================================================
 const leaderboardList = document.getElementById("leaderboardList");
@@ -173,7 +189,7 @@ async function loadLeaderboard() {
 leaderboardList && loadLeaderboard();
 
 // ==================================================
-//              NAVIGATION
+//                   NAVIGATION
 // ==================================================
 navWithClick("#playBtn", "game.html");
 navWithClick("#leaderboardBtn", "leaderboard.html");
@@ -181,8 +197,40 @@ navWithClick("#dictionaryBtn", "dictionary.html");
 navWithClick("#backBtn", "index.html");
 
 // ==================================================
-//              MODALS
+//                     MODALS
 // ==================================================
+
+// open forgot-password modal
+onPage("#forgotPassword", () => {
+  forgotPassword.onclick = () => {
+    loginModal.style.display = "none";
+    forgotModal.style.display = "flex";
+
+    // optional UX polish
+    resetEmail.value = username.value.trim();
+  };
+});
+
+// submit reset email
+onPage("#resetSubmit", () => {
+  resetSubmit.onclick = () => {
+    const email = resetEmail.value.trim();
+    sendReset(email);
+  };
+});
+
+// close forgot modal (button)
+onPage("#closeForgot", () => {
+  closeForgot.onclick = () => {
+    forgotModal.style.display = "none";
+  };
+});
+
+// close forgot modal (click outside)
+window.addEventListener("click", (e) => {
+  if (e.target === forgotModal) forgotModal.style.display = "none";
+});
+
 onPage("#loginBtn", () => {
   document.getElementById("loginBtn").onclick = () =>
     document.getElementById("loginModal").style.display = "flex";

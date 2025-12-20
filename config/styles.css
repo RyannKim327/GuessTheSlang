@@ -158,8 +158,11 @@ body {
   border: none;
   background: #2667ff;
   color: #fff;
+  cursor: pointer;
 }
-
+.signup-text{
+  margin-top: 10px;
+}
 #closeModal,
 #closeSignup {
   background: #aaa;
