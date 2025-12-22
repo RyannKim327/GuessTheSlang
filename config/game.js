@@ -110,6 +110,78 @@ function showSuccessPopup(answer, description) {
   };
 }
 
+function launchConfetti() {
+  const canvas = document.getElementById("confettiCanvas");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+
+  canvas.width  = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+
+  // LIMITED amount
+  const pieces = Array.from({ length: 90 }, () => ({
+    x: Math.random() * canvas.width,
+    y: -Math.random() * canvas.height, // start above screen
+    r: Math.random() * 5 + 4,
+    dy: Math.random() * 3 + 2,
+    dx: Math.random() * 2 - 1, // slight sideways drift
+    color: `hsl(${Math.random() * 360}, 85%, 60%)`
+  }));
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let active = 0;
+
+    pieces.forEach(p => {
+      p.x += p.dx;
+      p.y += p.dy;
+
+      if (p.y <= canvas.height + p.r) {
+        active++;
+
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+
+    // keep animating ONLY while pieces exist
+    if (active > 0) {
+      requestAnimationFrame(animate);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  animate();
+}
+
+async function showEndPopup() {
+  const popup = document.getElementById("endPopup");
+  const yesBtn = document.getElementById("endYes");
+  const noBtn  = document.getElementById("endNo");
+  const pointsText = document.getElementById("totalPointsText");
+
+  if (!popup || !yesBtn || !noBtn) return;
+
+  const points = await getPoints();
+  pointsText.textContent = `Total Points: ${points}`;
+
+  popup.classList.remove("hidden");
+  launchConfetti();
+
+  yesBtn.onclick = () => {
+    location.href = "dictionary.html";
+  };
+
+  noBtn.onclick = () => {
+    popup.classList.add("hidden");
+  };
+}
+
 // =======================
 //      POINTS SYSTEM
 // =======================
@@ -408,9 +480,12 @@ checkBtn.onclick = async () => {
 nextBtn.onclick = () => {
   currentLevel++;
   saveLevel(currentLevel);
-  currentLevel >= levels.length
-    ? customAlert("All levels done!")
-    : loadLevel();
+
+  if (currentLevel >= levels.length) {
+    showEndPopup(); // 🎉 HERE
+  } else {
+    loadLevel();
+  }
 };
 
 // =======================

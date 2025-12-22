@@ -463,3 +463,76 @@ body {
     opacity: 1;
   }
 }
+
+.popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+
+  /* 🔒 disable background interaction */
+  pointer-events: all;
+}
+
+.popup.hidden {
+  display: none;
+}
+
+.popup-card {
+  position: relative;
+  background: #fff;
+  color: #222;
+  padding: 30px 24px;
+  border-radius: 18px;
+  width: 90%;
+  max-width: 340px;
+  text-align: center;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+  animation: popIn 0.35s ease;
+}
+
+.popup-card i {
+  font-size: 42px;
+  color: #f4b400;
+  margin-bottom: 10px;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.popup-actions button {
+  flex: 1;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.popup-actions button.secondary {
+  background: #eee;
+  color: #333;
+}
+
+.popup-actions button:not(.secondary) {
+  background: #222;
+  color: white;
+}
+
+/* 🎊 Confetti canvas */
+#confettiCanvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
