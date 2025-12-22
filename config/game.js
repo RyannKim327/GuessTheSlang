@@ -204,7 +204,7 @@ async function updatePointsUI() {
 }
 
 // =======================
-//        GAME STATE
+//       GAME STATE
 // =======================
 
 function getLevelKey() {
@@ -380,7 +380,7 @@ function markLevelCompleted(levelIndex) {
 }
 
 // =======================
-//        ACTIONS
+//         ACTIONS
 // =======================
 checkBtn.onclick = async () => {
   const level = safeLevel();
@@ -414,7 +414,7 @@ nextBtn.onclick = () => {
 };
 
 // =======================
-//      SHUFFLE
+//         SHUFFLE
 // =======================
 shuffleBtn.onclick = () => {
   if (!letterBank.children.length) return;
@@ -425,7 +425,7 @@ shuffleBtn.onclick = () => {
 };
 
 // =======================
-//        HINT
+//          HINT
 // =======================
 hintBtn.onclick = async () => {
   if (!(await spendPoints(10)))
@@ -457,7 +457,7 @@ backBtn.onclick = () => {
 };
 
 // =======================
-//        START
+//         START
 // =======================
 fetchLevels();
 updatePointsUI();
