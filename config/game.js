@@ -554,31 +554,33 @@ hintBtn.onclick = async () => {
 
   const correct = level.answer.toUpperCase();
 
-  [...answerBoxes.children].some((box, i) => {
-    // skip if already correct
-    if (box.textContent === correct[i]) return false;
+  // find all hintable positions
+  const candidates = [...answerBoxes.children]
+    .map((box, i) => ({ box, i }))
+    .filter(({ box, i }) => box.textContent !== correct[i]);
 
-    // clear wrong letter (and restore its tile)
-    if (box.textContent) clearBox(i);
+  if (!candidates.length) return;
 
-    // find a matching visible tile
-    const tile = [...letterBank.children].find(
-      t =>
-        t.textContent === correct[i] &&
-        t.style.visibility !== "hidden"
-    );
+  // pick RANDOM one
+  const { box, i } =
+    candidates[Math.floor(Math.random() * candidates.length)];
 
-    if (!tile) return false;
+  // clear wrong letter (restore tile)
+  if (box.textContent) clearBox(i);
 
-    // place letter
-    box.textContent = correct[i];
-    box.dataset.srcTile = tile.dataset.tileId;
+  // find matching visible tile
+  const tile = [...letterBank.children].find(
+    t =>
+      t.textContent === correct[i] &&
+      t.style.visibility !== "hidden"
+  );
 
-    // hide tile
-    tile.style.visibility = "hidden";
+  if (!tile) return;
 
-    return true; // stop after one hint letter
-  });
+  // place hint letter
+  box.textContent = correct[i];
+  box.dataset.srcTile = tile.dataset.tileId;
+  tile.style.visibility = "hidden";
 };
 
 resetBtn.onclick = () => {
