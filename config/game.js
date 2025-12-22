@@ -652,7 +652,7 @@ hintBtn.onclick = async () => {
     customAlert("Not enough points!");
     return;
   }
-  
+
   playHintSound(); // 🔊 hint purchase sound
 
   // 🎲 pick random slot
@@ -682,12 +682,27 @@ hintBtn.onclick = async () => {
   saveHintState(state);
 };
 
+const resetPopup   = document.getElementById("resetPopup");
+const resetConfirm = document.getElementById("resetConfirm");
+const resetCancel  = document.getElementById("resetCancel");
+
 resetBtn.onclick = () => {
+  resetPopup.classList.remove("hidden");
+};
+
+resetConfirm.onclick = () => {
   currentLevel = 0;
   saveLevel(0);
   fetchLevels();
+
+  resetPopup.classList.add("hidden");
   customAlert("Progress reset");
 };
+
+resetCancel.onclick = () => {
+  resetPopup.classList.add("hidden");
+};
+
 
 backBtn.onclick = () => {
   setTimeout(() => location.href = "index.html", 150);
