@@ -92,6 +92,48 @@ function cleanURL(url = "") {
   return url.replace(/^"+|"+$/g, "").trim();
 }
 
+function levelConfettiBurst() {
+  const canvas = document.getElementById("levelConfetti");
+  const ctx = canvas.getContext("2d");
+
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const confettiCount = 40;
+  const gravity = 0.4;
+
+  const pieces = Array.from({ length: confettiCount }, () => ({
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    vx: (Math.random() - 0.5) * 10,
+    vy: Math.random() * -8 - 4,
+    size: Math.random() * 6 + 4,
+    color: `hsl(${Math.random() * 360}, 90%, 60%)`
+  }));
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    pieces.forEach(p => {
+      p.vy += gravity;
+      p.x += p.vx;
+      p.y += p.vy;
+
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    });
+
+    // stop when all confetti is off-screen
+    if (pieces.some(p => p.y < canvas.height)) {
+      requestAnimationFrame(animate);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  animate();
+}
+
 function showSuccessPopup(answer, description) {
   const popup = document.getElementById("successPopup");
   const word  = document.getElementById("popupWord");
@@ -462,6 +504,7 @@ checkBtn.onclick = async () => {
 
     if (answer === level.answer) {
       showSuccessPopup(level.answer, level.description);
+      levelConfettiBurst(); // 🎉 small burst
 
       markLevelCompleted(currentLevel);
 
