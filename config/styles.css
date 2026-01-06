@@ -229,6 +229,7 @@ body {
   display: flex;
   justify-content: center;
   gap: clamp(6px, 2vw, 10px);
+  flex-wrap: wrap;        /* 👈 allow going down */
 }
 
 .answer-box {
@@ -241,6 +242,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;         /* 👈 THIS stops shrinking */
 }
 
 .letter-bank {
@@ -551,7 +553,7 @@ body {
 
 .answer-box.space {
   visibility: hidden;
-  width: 20px;
+  width: 25px;
   margin: 0;
   padding: 0;
 }

@@ -432,35 +432,83 @@ function loadLevel() {
 // =======================
 //      ANSWER BOXES
 // =======================
+function getLetterBoxes() {
+  return [...answerBoxes.querySelectorAll(".answer-box[data-letter]")];
+}
+
+const MAX_LETTERS_PER_ROW = 6; // tweak this
+
+function splitAnswerIntoRows(answer, maxLetters) {
+  const words = answer.split(" ");
+
+  const rows = [];
+  let currentRow = [];
+  let currentLen = 0;
+
+  for (const word of words) {
+    const len = word.length;
+
+    if (currentLen + len <= maxLetters) {
+      currentRow.push(word);
+      currentLen += len;
+    } else {
+      rows.push(currentRow.join(" "));
+      currentRow = [word];
+      currentLen = len;
+    }
+  }
+
+  if (currentRow.length) {
+    rows.push(currentRow.join(" "));
+  }
+
+  return rows;
+}
+
 function buildAnswerBoxes(answer = "") {
   answerBoxes.innerHTML = "";
 
-  [...answer].forEach((char, i) => {
-    const box = document.createElement("div");
-    box.className = "answer-box";
+  let letterIndex = 0; // 👈 REQUIRED
 
-    if (char === " ") {
-      box.classList.add("space");
-      box.textContent = " ";
-      box.dataset.space = "true";
-    } else {
-      box.dataset.letter = "true";
-      box.onclick = () => box.textContent && clearBox(i);
+  const rows = splitAnswerIntoRows(answer, MAX_LETTERS_PER_ROW);
+
+  rows.forEach(row => {
+    for (const char of row) {
+      if (char === " ") {
+        const space = document.createElement("div");
+        space.className = "answer-space";
+        answerBoxes.appendChild(space);
+        continue;
+      }
+
+      const box = document.createElement("div");
+      box.className = "answer-box";
+      box.dataset.index = letterIndex;
+      box.dataset.letter = "true"; // 👈 THIS IS THE KEY
+
+      box.onclick = () => {
+        if (!box.textContent) return;
+        clearBox(Number(box.dataset.index));
+      };
+
+      answerBoxes.appendChild(box);
+      letterIndex++;
     }
 
-    answerBoxes.appendChild(box);
+    const br = document.createElement("div");
+    br.style.flexBasis = "100%";
+    br.style.height = "0";
+    answerBoxes.appendChild(br);
   });
 }
 
 function findEmptyBox() {
-  return [...answerBoxes.children].findIndex(
-    b => b.dataset.letter && !b.textContent
-  );
+  return getLetterBoxes().findIndex(b => !b.textContent);
 }
 
 function clearBox(i) {
-  const box = answerBoxes.children[i];
-  if (!box.dataset.letter) return;
+  const box = getLetterBoxes()[i];
+  if (!box) return;
 
   const tileId = box.dataset.srcTile;
 
@@ -468,7 +516,9 @@ function clearBox(i) {
   delete box.dataset.srcTile;
 
   if (!tileId) return;
-  const tile = letterBank.querySelector(`[data-tile-id='${tileId}']`);
+  const tile = letterBank.querySelector(
+    `[data-tile-id='${tileId}']`
+  );
   if (tile) tile.style.visibility = "";
 }
 
@@ -513,7 +563,7 @@ function buildLetterTiles(answer = "") {
       const idx = findEmptyBox();
       if (idx === -1) return;
 
-      const box = answerBoxes.children[idx];
+      const box = getLetterBoxes()[idx];
       box.textContent = l;
       box.dataset.srcTile = tile.dataset.tileId;
       tile.style.visibility = "hidden";
@@ -602,43 +652,41 @@ checkBtn.onclick = async () => {
   checkInProgress = true;
   checkBtn.disabled = true;
 
-  try {
-    const level = safeLevel();
-    if (!level) return;
-
-    const answer = [...answerBoxes.children]
-      .map(b => b.textContent)
-      .join("");
-
-    if (answer === level.answer) {
-      playLevelComplete();
-      showSuccessPopup(level.answer, level.description);
-      levelConfettiBurst();
-
-      markLevelCompleted(currentLevel);
-
-      const state = getHintState();
-      delete state[currentLevel];
-      saveHintState(state);
-
-      if (!hasRewarded(currentLevel)) {
-        await addScore(10);
-        await addPoints(5);
-        markRewarded(currentLevel);
-      }
-
-      nextBtn.style.display = "inline-block";
-      checkBtn.style.display = "none";
-    } else {
-      customAlert("Try again 😅");
-    }
-  } finally {
-    // re-enable ONLY if still on same level
-    if (checkBtn.style.display !== "none") {
-      checkBtn.disabled = false;
-      checkInProgress = false;
-    }
+  const level = safeLevel();
+  if (!level) {
+    checkInProgress = false;
+    checkBtn.disabled = false;
+    return;
   }
+
+  const answer = getLetterBoxes()
+    .map(b => b.textContent)
+    .join("");
+
+  const correct = level.answer.replaceAll(" ", "");
+
+  if (answer === correct) {
+    playLevelComplete();
+    showSuccessPopup(level.answer, level.description);
+    levelConfettiBurst();
+
+    await addPoints(5);
+    await addScore(10);
+    markLevelCompleted(currentLevel);
+
+    await updatePointsUI(); // 🔥 THIS WAS MISSING
+
+    nextBtn.style.display = "inline-block";
+    checkBtn.style.display = "none";
+
+    checkInProgress = false;
+    checkBtn.disabled = false;
+    return;
+  }
+
+  customAlert("Try again 😅");
+  checkInProgress = false;
+  checkBtn.disabled = false;
 };
 
 nextBtn.onclick = async () => {
@@ -678,21 +726,27 @@ shuffleBtn.onclick = () => {
 // =======================
 //          HINT
 // =======================
+ 
 hintBtn.onclick = async () => {
-  if (hintInProgress) return; // 🚫 block spam
+  if (hintInProgress) return;
   hintInProgress = true;
   hintBtn.disabled = true;
 
+  const unlock = () => {
+    hintInProgress = false;
+    hintBtn.disabled = false;
+  };
+
   try {
     const level = safeLevel();
-    if (!level) return;
+    if (!level) return unlock();
 
     const answer = level.answer.toUpperCase();
     const limit = getHintLimit(answer.length);
 
     if (limit === 0) {
       customAlert("Hints are disabled for short words 👀");
-      return;
+      return unlock();
     }
 
     const state = getHintState();
@@ -700,50 +754,56 @@ hintBtn.onclick = async () => {
 
     if (usedHints.length >= limit) {
       customAlert(`Hint limit reached (${limit}/${limit})`);
-      return;
+      return unlock();
     }
 
+    // 🔹 collect correct candidates using REAL letter index
     const candidates = [...answerBoxes.children]
-      .map((box, i) => ({ box, i }))
-      .filter(({ box, i }) => box.textContent !== answer[i]);
+      .filter(box => box.dataset.letter)
+      .map(box => ({
+        box,
+        letterIndex: Number(box.dataset.index)
+      }))
+      .filter(({ box, letterIndex }) =>
+        box.textContent !== answer[letterIndex]
+      );
 
     if (!candidates.length) {
       customAlert("All letters are already revealed 😉");
-      return;
+      return unlock();
     }
 
+    // 💰 only charge AFTER confirming a valid hint exists
     if (!(await spendPoints(10))) {
       customAlert("Not enough points!");
-      return;
+      return unlock();
     }
 
     playHintSound();
 
-    const { box, i } =
+    const { box, letterIndex } =
       candidates[Math.floor(Math.random() * candidates.length)];
 
-    if (box.textContent) clearBox(i);
+    if (box.textContent) clearBox(letterIndex);
 
     const tile = [...letterBank.children].find(
       t =>
-        t.textContent === answer[i] &&
+        t.textContent === answer[letterIndex] &&
         t.style.visibility !== "hidden"
     );
 
-    if (!tile) return;
+    if (!tile) return unlock();
 
-    box.textContent = answer[i];
+    box.textContent = answer[letterIndex];
     box.dataset.srcTile = tile.dataset.tileId;
     tile.style.visibility = "hidden";
 
     state[currentLevel] ??= [];
-    state[currentLevel].push(i);
+    state[currentLevel].push(letterIndex);
     saveHintState(state);
 
   } finally {
-    // ✅ always unlock
-    hintInProgress = false;
-    hintBtn.disabled = false;
+    unlock();
   }
 };
 
@@ -756,8 +816,14 @@ resetBtn.onclick = () => {
 };
 
 resetConfirm.onclick = () => {
+  const uid = getUserId();
+
   currentLevel = 0;
   saveLevel(0);
+
+  // 🔥 CLEAR ALL HINTS
+  localStorage.removeItem(`hintState_${uid}`);
+
   fetchLevels();
 
   resetPopup.classList.add("hidden");
