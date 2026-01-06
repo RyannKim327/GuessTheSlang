@@ -548,3 +548,10 @@ body {
   background-color: #7c2020;
   color: white;
 }
+
+.answer-box.space {
+  visibility: hidden;
+  width: 20px;
+  margin: 0;
+  padding: 0;
+}

@@ -434,20 +434,33 @@ function loadLevel() {
 function buildAnswerBoxes(answer = "") {
   answerBoxes.innerHTML = "";
 
-  [...answer].forEach((_, i) => {
+  [...answer].forEach((char, i) => {
     const box = document.createElement("div");
     box.className = "answer-box";
-    box.onclick = () => box.textContent && clearBox(i);
+
+    if (char === " ") {
+      box.classList.add("space");
+      box.textContent = " ";
+      box.dataset.space = "true";
+    } else {
+      box.dataset.letter = "true";
+      box.onclick = () => box.textContent && clearBox(i);
+    }
+
     answerBoxes.appendChild(box);
   });
 }
 
 function findEmptyBox() {
-  return [...answerBoxes.children].findIndex(b => !b.textContent);
+  return [...answerBoxes.children].findIndex(
+    b => b.dataset.letter && !b.textContent
+  );
 }
 
 function clearBox(i) {
   const box = answerBoxes.children[i];
+  if (!box.dataset.letter) return;
+
   const tileId = box.dataset.srcTile;
 
   box.textContent = "";
@@ -465,11 +478,23 @@ function buildLetterTiles(answer = "") {
   letterBank.innerHTML = "";
 
   const needed = {};
-  [...answer.toUpperCase()].forEach(l => needed[l] = (needed[l] || 0) + 1);
+  [...answer.toUpperCase()].forEach(l => {
+    if (l !== " ") {
+      needed[l] = (needed[l] || 0) + 1;
+    }
+  });
 
-  let letters = Object.entries(needed).flatMap(([l, c]) => Array(c).fill(l));
-  while (letters.length < 12)
-    letters.push(String.fromCharCode(65 + Math.random() * 26));
+  let letters = Object.entries(needed)
+    .flatMap(([l, c]) => Array(c).fill(l));
+
+  while (letters.length < 12) {
+    letters.push(
+      String.fromCharCode(65 + Math.floor(Math.random() * 26))
+    );
+  }
+
+  // 🔒 hard safety filter
+  letters = letters.filter(l => l && l.trim() !== "");
 
   letters.sort(() => Math.random() - 0.5);
 
